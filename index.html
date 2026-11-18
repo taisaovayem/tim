@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ff5b9a" />
+  <title>Gửi chút yêu thương</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --pink: #ff4f94;
+      --hot-pink: #ff1672;
+      --light-pink: #ffd5e6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100svh;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      font-family: ui-rounded, "Nunito", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 50% 42%, #72183f 0%, #320c26 35%, #140817 78%),
+        #140817;
+    }
+
+    .glow {
+      position: fixed;
+      width: min(78vw, 620px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #ff478d;
+      opacity: .21;
+      filter: blur(66px);
+      animation: glow 1.15s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    .scene {
+      position: relative;
+      z-index: 1;
+      width: min(88vw, 500px);
+      min-height: min(84svh, 620px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      perspective: 900px;
+    }
+
+    .heart-stage {
+      position: relative;
+      width: min(76vw, 360px);
+      animation: beat 1.05s cubic-bezier(.2, .82, .35, 1) infinite;
+    }
+
+    #heart-canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1.1;
+      filter: drop-shadow(0 18px 18px rgba(255, 19, 109, .38));
+    }
+
+    .message {
+      margin: 24px 0 0;
+      max-width: 100%;
+      color: white;
+      font-size: clamp(1.45rem, 5vw, 2.25rem);
+      line-height: 1.25;
+      font-weight: 800;
+      letter-spacing: .01em;
+      text-shadow: 0 3px 14px rgba(255, 53, 143, .55);
+    }
+
+    .message small {
+      display: block;
+      margin-top: 10px;
+      color: var(--light-pink);
+      font-size: clamp(.88rem, 2.8vw, 1.05rem);
+      font-weight: 500;
+      letter-spacing: .06em;
+    }
+
+    .love-particle {
+      position: fixed;
+      z-index: 0;
+      left: 0;
+      top: 0;
+      color: #ff80b7;
+      font-size: var(--size);
+      opacity: 0;
+      pointer-events: none;
+      text-shadow: 0 0 12px currentColor;
+      animation: float-love var(--duration) linear var(--delay) infinite;
+    }
+
+    .burst-heart {
+      position: fixed;
+      z-index: 5;
+      left: var(--click-x);
+      top: var(--click-y);
+      color: var(--burst-color);
+      font-size: var(--burst-size);
+      line-height: 1;
+      opacity: 0;
+      pointer-events: none;
+      text-shadow: 0 0 10px currentColor, 0 0 22px rgba(255, 53, 143, .55);
+      will-change: transform, opacity;
+      animation: burst-heart var(--burst-duration) cubic-bezier(.12, .62, .22, 1) forwards;
+    }
+
+    @keyframes beat {
+      0%, 100% { transform: scale(1); }
+      11% { transform: scale(1.11); }
+      22% { transform: scale(.99); }
+      35% { transform: scale(1.06); }
+      48% { transform: scale(1); }
+    }
+
+    @keyframes glow {
+      from { transform: scale(.83); opacity: .14; }
+      to { transform: scale(1.08); opacity: .29; }
+    }
+
+    @keyframes float-love {
+      0% { transform: translate(var(--x), 112vh) rotate(0deg) scale(.5); opacity: 0; }
+      8%, 82% { opacity: .86; }
+      100% { transform: translate(calc(var(--x) + var(--drift)), -14vh) rotate(280deg) scale(1.2); opacity: 0; }
+    }
+
+    @keyframes burst-heart {
+      0% { transform: translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(.2); opacity: 0; }
+      10% { opacity: 1; }
+      100% { transform: translate(-50%, -50%) translate(var(--burst-x), var(--burst-y)) rotate(var(--burst-rotation)) scale(var(--burst-scale)); opacity: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div>
+  <main class="scene">
+    <div class="heart-stage" aria-label="Trái tim màu hồng đang đập" role="img">
+      <canvas id="heart-canvas" data-shape-reference="tim-tim-webp" aria-hidden="true"></canvas>
+    </div>
+    <p class="message" id="message"></p>
+  </main>
+
+  <script>
+    const heartCanvas = document.getElementById('heart-canvas');
+
+    function drawHeart() {
+      const rect = heartCanvas.getBoundingClientRect();
+      const scale = Math.min(window.devicePixelRatio || 1, 2);
+      heartCanvas.width = Math.round(rect.width * scale);
+      heartCanvas.height = Math.round(rect.height * scale);
+
+      const ctx = heartCanvas.getContext('2d');
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      const { width, height } = rect;
+      const centerX = width / 2;
+
+      function heartPath() {
+        ctx.beginPath();
+        ctx.moveTo(centerX, height * .87);
+        ctx.bezierCurveTo(centerX - width * .06, height * .85, width * .10, height * .63, width * .10, height * .39);
+        ctx.bezierCurveTo(width * .10, height * .17, width * .35, height * .10, centerX, height * .29);
+        ctx.bezierCurveTo(width * .65, height * .10, width * .90, height * .17, width * .90, height * .39);
+        ctx.bezierCurveTo(width * .90, height * .63, centerX + width * .06, height * .85, centerX, height * .87);
+        ctx.closePath();
+      }
+
+      ctx.clearRect(0, 0, width, height);
+      heartPath();
+      ctx.save();
+      ctx.shadowColor = 'rgba(119, 0, 53, .5)';
+      ctx.shadowBlur = width * .08;
+      ctx.shadowOffsetY = height * .035;
+      const ambientLight = ctx.createRadialGradient(centerX, height * .43, width * .08, centerX, height * .43, width * .62);
+      ambientLight.addColorStop(0, '#ffb8d3');
+      ambientLight.addColorStop(.32, '#ff84b5');
+      ambientLight.addColorStop(.63, '#f44286');
+      ambientLight.addColorStop(.86, '#d10b59');
+      ambientLight.addColorStop(1, '#a50341');
+      ctx.fillStyle = ambientLight;
+      ctx.fill();
+      ctx.restore();
+
+    }
+
+    drawHeart();
+    window.addEventListener('resize', drawHeart);
+
+    const recipient = new URLSearchParams(window.location.search).get('to')?.trim();
+    const message = document.getElementById('message');
+    if (recipient) {
+      message.replaceChildren(`Gửi ${recipient} thật nhiều yêu thương`, document.createElement('small'));
+      document.title = `Gửi ${recipient} yêu thương`;
+    }
+
+    const symbols = ['♥', '♡', '❤', '✦'];
+    for (let i = 0; i < 28; i += 1) {
+      const particle = document.createElement('span');
+      particle.className = 'love-particle';
+      particle.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+      particle.style.setProperty('--x', `${Math.random() * 100}vw`);
+      particle.style.setProperty('--drift', `${-12 + Math.random() * 24}vw`);
+      particle.style.setProperty('--size', `${12 + Math.random() * 25}px`);
+      particle.style.setProperty('--duration', `${6 + Math.random() * 8}s`);
+      particle.style.setProperty('--delay', `${-Math.random() * 14}s`);
+      document.body.append(particle);
+    }
+
+    function createLoveBurst(x, y) {
+      const fragment = document.createDocumentFragment();
+      const colors = ['#ff75ad', '#ffb0d0', '#ff4f94', '#ffd1e2'];
+      const hearts = ['❤', '♥', '♡'];
+
+      for (let i = 0; i < 42; i += 1) {
+        const particle = document.createElement('span');
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 65 + Math.random() * 185;
+        particle.className = 'burst-heart';
+        particle.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+        particle.style.setProperty('--click-x', `${x}px`);
+        particle.style.setProperty('--click-y', `${y}px`);
+        particle.style.setProperty('--burst-x', `${Math.cos(angle) * distance}px`);
+        particle.style.setProperty('--burst-y', `${Math.sin(angle) * distance + distance * .16}px`);
+        particle.style.setProperty('--burst-size', `${13 + Math.random() * 28}px`);
+        particle.style.setProperty('--burst-color', colors[Math.floor(Math.random() * colors.length)]);
+        particle.style.setProperty('--burst-duration', `${800 + Math.random() * 700}ms`);
+        particle.style.setProperty('--burst-rotation', `${-220 + Math.random() * 440}deg`);
+        particle.style.setProperty('--burst-scale', `${.65 + Math.random() * .8}`);
+        particle.addEventListener('animationend', () => particle.remove(), { once: true });
+        fragment.append(particle);
+      }
+
+      document.body.append(fragment);
+    }
+
+    document.addEventListener('click', (event) => createLoveBurst(event.clientX, event.clientY));
+  </script>
+</body>
+</html>
